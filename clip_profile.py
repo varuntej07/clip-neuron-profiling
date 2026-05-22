@@ -62,7 +62,8 @@ texts = [
 # processor tokenizes text (BPE, max 77 tokens) + normalizes images into pixel_values.
 # images*2 repeats the 2 images to match batch=4.
 inputs = processor(text=texts, images=images * 2,
-                   return_tensors="pt", padding=True, truncation=True, max_length=77)
+                   return_tensors="pt", padding="max_length", 
+                   truncation=True, max_length=77)
 input_ids = inputs["input_ids"]       # [4, 77]
 pixel_values = inputs["pixel_values"]    # [4, 3, 224, 224]
 
@@ -97,7 +98,7 @@ print(f"View timeline: neuron-profile view -d {PROFILE_DIR} --port 3001")
 # index 0 is logits_per_image per CLIPModel source).
 with torch.no_grad():
     output = neuron_clip(input_ids, pixel_values)
-    
+
 logits = output[0]
 probs = logits.softmax(dim=1)
 print("\nCLIP similarity (image x text):")
