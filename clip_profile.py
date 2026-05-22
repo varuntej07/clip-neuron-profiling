@@ -74,22 +74,16 @@ print("[4/5] Warmup (loads NEFF onto NeuronCore SRAM)...")
 with torch.no_grad():
     _ = neuron_clip(input_ids, pixel_values)
 
-# Profiler instruments NeuronCore hardware counters for the duration of the context.
-# profile_type="trace": records per-op hardware execution timeline as a .ntff file.
-# .ntff captures which NeuronCore ran each op, start/end timestamps (ns), DMA events.
-# 5 iterations: first 1-2 may still have pipeline fill artifacts; later iters are stable.
+# torch_neuronx.experimental.profiler was removed in Neuron SDK 2.28+.
+# Hardware traces are now captured via NEURON_PROFILE env var (which are set before import).
+# to generate .ntff files they're viewable using: neuron-profile view -d ./clip_profile_results --port 3001
 print("[5/5] Profiled run...")
-with torch_neuronx.experimental.profiler.profile(
-    profile_dir=PROFILE_DIR,
-    profile_type="trace",
-    neuron_profile_args="--nn-batch-size=1"
-) as prof:
-    with torch.no_grad():
-        for i in range(5):
-            t0 = time.perf_counter()
-            output = neuron_clip(input_ids, pixel_values)
-            t1 = time.perf_counter()
-            print(f"  iter {i+1}: {(t1 - t0) * 1000:.1f} ms")
+with torch.no_grad():
+    for i in range(5):
+        t0 = time.perf_counter()
+        output = neuron_clip(input_ids, pixel_values)
+        t1 = time.perf_counter()
+        print(f"  iter {i+1}: {(t1 - t0) * 1000:.1f} ms")
 
 print(f"\nProfile saved to: {PROFILE_DIR}")
 print(f"View timeline: neuron-profile view -d {PROFILE_DIR} --port 3001")
