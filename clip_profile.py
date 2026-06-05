@@ -1,16 +1,22 @@
 import os
-import time
-import torch
-import torch_neuronx
-from PIL import Image
-from transformers import CLIPProcessor, CLIPModel
-import requests
 
 MODEL_ID = "openai/clip-vit-base-patch32"
 COMPILED_DIR = "./clip_neuron_compiled"
 PROFILE_DIR = "./clip_profile_results"
 os.makedirs(COMPILED_DIR, exist_ok=True)
 os.makedirs(PROFILE_DIR, exist_ok=True)
+
+# NEURON_PROFILE must be set before torch_neuronx is imported.
+# The Neuron runtime reads it at initialization and writes .ntff trace files
+# to this directory during inference, which neuron-profile view then reads.
+os.environ["NEURON_PROFILE"] = PROFILE_DIR
+
+import time
+import torch
+import torch_neuronx
+from PIL import Image
+from transformers import CLIPProcessor, CLIPModel
+import requests
 
 print("[1/5] Loading CLIP model...")
 
@@ -31,8 +37,7 @@ dummy_pixel_values = torch.zeros(4, 3, 224, 224)
 # stream scheduled for the systolic array. This bakes the op order into the binary.
 # --enable-saturate-infinity: prevents NaN propagation from inf*0 in attention softmax.
 # Passing model directly (not a wrapper)
-# First compile: 5-10 min. Subsequent loads from .pt skip this entirely.
-print("[2/5] Compiling to Neuron (5-10 min first run)...")
+print("[2/5] Compiling to Neuron ...")
 neuron_clip = torch_neuronx.trace(
     model,
     (dummy_input_ids, dummy_pixel_values),
